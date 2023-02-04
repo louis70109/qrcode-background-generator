@@ -1,6 +1,6 @@
 
-var http = require('http');
-var formidable = require('formidable');
+const http = require('http');
+const formidable = require('formidable');
 const { AwesomeQR } = require("awesome-qr");
 const fs = require("fs");
 
@@ -37,4 +37,4 @@ http.createServer(function (req, res) {
     res.write('</form>');
     return res.end();
   }
-}).listen(8080);
+}).listen(parseInt(process.env.PORT) || 8080);
