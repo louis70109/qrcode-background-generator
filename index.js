@@ -22,9 +22,14 @@ http.createServer(function (req, res) {
       }).draw();
       
       // Local testing.
-      fs.writeFileSync("qrcode.png", buffer);
+      // fs.writeFileSync("qrcode.png", buffer);
+      const b64 = Buffer.from(buffer).toString('base64');
+      // CHANGE THIS IF THE IMAGE YOU ARE WORKING WITH IS .jpg OR WHATEVER
+      const mimeType = 'image/png'; // e.g., image/png
 
-      res.write(buffer);
+      // Use base64 to show img.
+      res.writeHead(200, {'Content-Type': 'text/html'});
+      res.write(`<img src="data:${mimeType};base64,${b64}" />`);
       res.end();
     });
   } else {
