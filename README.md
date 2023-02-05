@@ -1,4 +1,4 @@
-# 幫你的 QR Code 加上背景
+# [幫 QR Code 加上背景圖，別只留下黑白！](https://nijialin.com/)
 
 ![](https://github.com/louis70109/qrcode-background-generator/blob/main/qrcode.png?raw=true)
 
