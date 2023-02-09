@@ -1,12 +1,13 @@
-'use strict';
+const express = require('express');
 
 if (process.env.NODE_ENV != 'production') require('dotenv').config();
 
 const formidable = require('formidable');
 const { AwesomeQR } = require('awesome-qr');
 const fs = require('fs');
+const path = require('path');
+const ngrok = require('ngrok');
 const line = require('@line/bot-sdk');
-const express = require('express');
 
 // create LINE SDK config from env variables
 const config = {
@@ -23,7 +24,7 @@ const app = express();
 
 // register a webhook handler with middleware
 // about the middleware, please refer to doc
-app.post('/callback', line.middleware(config), (req, res) => {
+app.post('/webhooks/line', line.middleware(config), (req, res) => {
   Promise.all(req.body.events.map(handleEvent))
     .then((result) => res.json(result))
     .catch((err) => {
@@ -32,18 +33,57 @@ app.post('/callback', line.middleware(config), (req, res) => {
     });
 });
 
+function downloadContent(messageId, downloadPath) {
+  return client.getMessageContent(messageId)
+    .then((stream) => new Promise((resolve, reject) => {
+      const writable = fs.createWriteStream(downloadPath);
+      stream.pipe(writable);
+      stream.on('end', () => resolve(downloadPath));
+      stream.on('error', reject);
+    }));
+}
+
+function handleImage(message, replyToken) {
+  let getContent;
+  let baseURL = process.env.BASE_URL;
+  if (message.contentProvider.type === "line") {
+    const downloadPath = path.join(__dirname, 'downloaded', `${message.id}.jpg`);
+    const previewPath = path.join(__dirname, 'downloaded', `${message.id}-preview.jpg`);
+
+    getContent = downloadContent(message.id, downloadPath)
+      .then((downloadPath) => {
+        // Upload to github repo
+
+        return {
+          originalContentUrl: baseURL + '/downloaded/' + path.basename(downloadPath),
+          previewImageUrl: baseURL + '/downloaded/' + path.basename(previewPath),
+        };
+      });
+  } else if (message.contentProvider.type === "external") {
+    getContent = Promise.resolve(message.contentProvider);
+  }
+
+  return getContent
+    .then(({ originalContentUrl, previewImageUrl }) => {
+      return client.replyMessage(
+        replyToken,
+        {
+          type: 'image',
+          originalContentUrl,
+          previewImageUrl,
+        }
+      );
+    });
+}
+
 // event handler
 function handleEvent(event) {
-  if (event.type !== 'message' || event.message.type !== 'text') {
+  console.log(event);
+  if (event.type !== 'message' || event.message.type !== 'image') {
     // ignore non-text-message event
     return Promise.resolve(null);
   }
-
-  // create a echoing text message
-  const echo = { type: 'text', text: event.message.text };
-
-  // use reply API
-  return client.replyMessage(event.replyToken, echo);
+  handleImage(event.message, event.replyToken)
 }
 app.post('/upload', (req, res) => {
   const form = new formidable.IncomingForm();
