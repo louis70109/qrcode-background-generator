@@ -14,16 +14,13 @@ const config = {
   channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
   channelSecret: process.env.CHANNEL_SECRET,
 };
+let baseURL = process.env.BASE_URL;
 
-// create LINE SDK client
 const client = new line.Client(config);
 
-// create Express app
-// about Express itself: https://expressjs.com/
 const app = express();
+app.use('/download', express.static('download'));
 
-// register a webhook handler with middleware
-// about the middleware, please refer to doc
 app.post('/webhooks/line', line.middleware(config), (req, res) => {
   Promise.all(req.body.events.map(handleEvent))
     .then((result) => res.json(result))
@@ -45,26 +42,28 @@ function downloadContent(messageId, downloadPath) {
 
 function handleImage(message, replyToken) {
   let getContent;
-  let baseURL = process.env.BASE_URL;
   if (message.contentProvider.type === "line") {
-    const downloadPath = path.join(__dirname, 'downloaded', `${message.id}.jpg`);
-    const previewPath = path.join(__dirname, 'downloaded', `${message.id}-preview.jpg`);
+    const downloadPath = path.join(__dirname, 'download', `${message.id}.jpg`);
+    const previewPath = path.join(__dirname, 'download', `${message.id}-preview.jpg`);
 
     getContent = downloadContent(message.id, downloadPath)
       .then((downloadPath) => {
         // Upload to github repo
 
         return {
-          originalContentUrl: baseURL + '/downloaded/' + path.basename(downloadPath),
-          previewImageUrl: baseURL + '/downloaded/' + path.basename(previewPath),
+          originalContentUrl: baseURL + '/download/' + path.basename(downloadPath),
+          previewImageUrl: baseURL + '/download/' + path.basename(previewPath),
         };
       });
   } else if (message.contentProvider.type === "external") {
     getContent = Promise.resolve(message.contentProvider);
   }
-
+  
   return getContent
     .then(({ originalContentUrl, previewImageUrl }) => {
+      console.log("_______________________");
+      console.log(originalContentUrl);
+      console.log("_______________________");
       return client.replyMessage(
         replyToken,
         {
@@ -98,9 +97,9 @@ app.post('/upload', (req, res) => {
     console.log(files.upload);
     const background = fs.readFileSync(files.upload.filepath);
     const imageType = ['image/jpeg', 'image/png'];
-    let config = {}
+    let qr_config = {}
     if (imageType.includes(files.upload.mimetype)) {
-      config = {
+      qr_config = {
         text: fields.url,
         width: 800,
         height: 800,
@@ -112,7 +111,7 @@ app.post('/upload', (req, res) => {
         dotScale: 0.35,
       };
     } else if (files.upload.mimetype === 'image/gif') {
-      config = {
+      qr_config = {
         text: fields.url,
         width: 800,
         height: 800,
@@ -124,7 +123,7 @@ app.post('/upload', (req, res) => {
         dotScale: 0.35,
       };
     }
-    const buffer = await new AwesomeQR(config).draw();
+    const buffer = await new AwesomeQR(qr_config).draw();
 
     // Local testing.
     // fs.writeFileSync("qrcode.png", buffer);
@@ -156,5 +155,19 @@ app.get('/', (req, res) => {
 // listen on port
 const port = process.env.PORT || 8080;
 app.listen(port, () => {
-  console.log(`listening on ${port}`);
+  if (baseURL) {
+    console.log(`listening on ${baseURL}:${port}/webhooks/lin`);
+  } else {
+    console.log("It seems that BASE_URL is not set. Connecting to ngrok...")
+    const token = process.env.NGROK_TOKEN
+    ngrok.connect({
+      proto: 'http', // http|tcp|tls, defaults to http
+      addr: port, // port or network address, defaults to 80
+      authtoken: token, // your authtoken from ngrok.com
+      region: 'us', // one of ngrok regions (us, eu, au, ap, sa, jp, in), defaults to us
+      }).then(url => {
+      baseURL = url;
+      console.log(`listening on ${baseURL}/webhooks/line`);
+    }).catch(console.error);
+  }
 });
