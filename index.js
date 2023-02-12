@@ -5,20 +5,19 @@ if (process.env.NODE_ENV != 'production') require('dotenv').config();
 const formidable = require('formidable');
 const { AwesomeQR } = require('awesome-qr');
 const fs = require('fs');
-const path = require('path');
 const ngrok = require('ngrok');
 const line = require('@line/bot-sdk');
+const { handleEvent } = require('./utils/line');
+const axios = require('axios');
 
-// create LINE SDK config from env variables
 const config = {
   channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
   channelSecret: process.env.CHANNEL_SECRET,
 };
 let baseURL = process.env.BASE_URL;
 
-const client = new line.Client(config);
-
 const app = express();
+
 app.use('/download', express.static('download'));
 
 app.post('/webhooks/line', line.middleware(config), (req, res) => {
@@ -30,60 +29,6 @@ app.post('/webhooks/line', line.middleware(config), (req, res) => {
     });
 });
 
-function downloadContent(messageId, downloadPath) {
-  return client.getMessageContent(messageId)
-    .then((stream) => new Promise((resolve, reject) => {
-      const writable = fs.createWriteStream(downloadPath);
-      stream.pipe(writable);
-      stream.on('end', () => resolve(downloadPath));
-      stream.on('error', reject);
-    }));
-}
-
-function handleImage(message, replyToken) {
-  let getContent;
-  if (message.contentProvider.type === "line") {
-    const downloadPath = path.join(__dirname, 'download', `${message.id}.jpg`);
-    const previewPath = path.join(__dirname, 'download', `${message.id}-preview.jpg`);
-
-    getContent = downloadContent(message.id, downloadPath)
-      .then((downloadPath) => {
-        // Upload to github repo
-
-        return {
-          originalContentUrl: baseURL + '/download/' + path.basename(downloadPath),
-          previewImageUrl: baseURL + '/download/' + path.basename(previewPath),
-        };
-      });
-  } else if (message.contentProvider.type === "external") {
-    getContent = Promise.resolve(message.contentProvider);
-  }
-  
-  return getContent
-    .then(({ originalContentUrl, previewImageUrl }) => {
-      console.log("_______________________");
-      console.log(originalContentUrl);
-      console.log("_______________________");
-      return client.replyMessage(
-        replyToken,
-        {
-          type: 'image',
-          originalContentUrl,
-          previewImageUrl,
-        }
-      );
-    });
-}
-
-// event handler
-function handleEvent(event) {
-  console.log(event);
-  if (event.type !== 'message' || event.message.type !== 'image') {
-    // ignore non-text-message event
-    return Promise.resolve(null);
-  }
-  handleImage(event.message, event.replyToken)
-}
 app.post('/upload', (req, res) => {
   const form = new formidable.IncomingForm();
 
@@ -97,7 +42,7 @@ app.post('/upload', (req, res) => {
     console.log(files.upload);
     const background = fs.readFileSync(files.upload.filepath);
     const imageType = ['image/jpeg', 'image/png'];
-    let qr_config = {}
+    let qr_config = {};
     if (imageType.includes(files.upload.mimetype)) {
       qr_config = {
         text: fields.url,
@@ -156,18 +101,35 @@ app.get('/', (req, res) => {
 const port = process.env.PORT || 8080;
 app.listen(port, () => {
   if (baseURL) {
-    console.log(`listening on ${baseURL}:${port}/webhooks/lin`);
+    console.log(`listening on ${baseURL}:${port}/webhooks/line`);
   } else {
-    console.log("It seems that BASE_URL is not set. Connecting to ngrok...")
-    const token = process.env.NGROK_TOKEN
-    ngrok.connect({
-      proto: 'http', // http|tcp|tls, defaults to http
-      addr: port, // port or network address, defaults to 80
-      authtoken: token, // your authtoken from ngrok.com
-      region: 'us', // one of ngrok regions (us, eu, au, ap, sa, jp, in), defaults to us
-      }).then(url => {
-      baseURL = url;
-      console.log(`listening on ${baseURL}/webhooks/line`);
-    }).catch(console.error);
+    console.log('It seems that BASE_URL is not set. Connecting to ngrok...');
+    const token = process.env.NGROK_TOKEN;
+    ngrok
+      .connect({
+        proto: 'http',
+        addr: port,
+        authtoken: token,
+        region: 'us',
+      })
+      .then((url) => {
+        baseURL = url;
+        console.log(`listening on ${baseURL}/webhooks/line`);
+        axios
+          .put(
+            'https://api.line.me/v2/bot/channel/webhook/endpoint',
+            { endpoint: `${url}/webhooks/line` },
+            {
+              headers: {
+                Authorization: `Bearer ${config.channelAccessToken}`,
+                'Content-Type': 'application/json',
+              },
+            }
+          )
+          .then((line) => {
+            console.log(line.status);
+          });
+      })
+      .catch(console.error);
   }
 });
