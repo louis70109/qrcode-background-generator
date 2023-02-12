@@ -7,8 +7,11 @@
 
 ## 如何開發測試
 
+需填入 `.env` 檔案中的各種參數值，會自動連線 ngrok 並更換 LINE Bot webhook endpoint。
+
 ```
 cd qrcode-background-generator/
+mv .env.sample .env
 npm install
 npm run dev
 ```
