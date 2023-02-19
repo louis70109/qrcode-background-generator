@@ -18,8 +18,6 @@ let baseURL = process.env.BASE_URL;
 
 const app = express();
 
-app.use('/download', express.static('download'));
-
 app.post('/webhooks/line', line.middleware(config), (req, res) => {
   Promise.all(req.body.events.map(handleEvent))
     .then((result) => res.json(result))
@@ -39,7 +37,7 @@ app.post('/upload', (req, res) => {
     throw 'error';
   }
   form.parse(req, async function (err, fields, files) {
-    console.log(files.upload);
+    // console.log(files.upload.filepath);
     const background = fs.readFileSync(files.upload.filepath);
     const imageType = ['image/jpeg', 'image/png'];
     let qr_config = {};
@@ -110,7 +108,7 @@ app.listen(port, () => {
         proto: 'http',
         addr: port,
         authtoken: token,
-        region: 'us',
+        region: 'jp', 
       })
       .then((url) => {
         baseURL = url;
@@ -127,7 +125,7 @@ app.listen(port, () => {
             }
           )
           .then((line) => {
-            console.log(line.status);
+            console.log('Update LINE webhook...: '+line.status);
           });
       })
       .catch(console.error);

@@ -1,4 +1,5 @@
 const axios = require('axios');
+const {QRcodeGenerate} = require('./qr')
 
 async function uploadGithub(name, chunk) {
   const config = {
@@ -7,10 +8,12 @@ async function uploadGithub(name, chunk) {
       Authorization: `Bearer ${process.env.GITHUB}`,
     },
   };
+
+  const content = await QRcodeGenerate('https://google.com', chunk)
   const data = {
     message: '✨ Commit',
     committer: { name: 'NiJia Lin', email: 'louis70109@gmail.com' },
-    content: Buffer.from(chunk).toString('base64').toString('ascii'),
+    content: Buffer.from(content).toString('base64').toString('ascii'),
     branch: 'master',
   };
   const url = `https://api.github.com/repos/louis70109/ideas-tree/contents/images/${name}.png`;
