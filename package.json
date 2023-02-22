@@ -20,7 +20,8 @@
     "formidable": "^2.1.1",
     "imagesize": "^1.0.0",
     "ngrok": "^4.3.3",
-    "path": "^0.12.7"
+    "path": "^0.12.7",
+    "sqlite3": "^5.1.4"
   },
   "devDependencies": {
     "dotenv": "^16.0.3",
