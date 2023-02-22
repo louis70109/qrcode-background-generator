@@ -9,11 +9,10 @@ async function uploadGithub(name, chunk) {
     },
   };
 
-  const content = await QRcodeGenerate('https://google.com', chunk)
   const data = {
     message: '✨ Commit',
     committer: { name: 'NiJia Lin', email: 'louis70109@gmail.com' },
-    content: Buffer.from(content).toString('base64').toString('ascii'),
+    content: Buffer.from(chunk).toString('base64').toString('ascii'),
     branch: 'master',
   };
   const url = `https://api.github.com/repos/louis70109/ideas-tree/contents/images/${name}.png`;
