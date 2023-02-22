@@ -1,7 +1,9 @@
 const { uploadGithub } = require('./github');
 const imagesize = require('imagesize');
-
 const line = require('@line/bot-sdk');
+const MessageDB = require('./sqlite');
+const { AwesomeQR } = require('awesome-qr');
+
 const client = new line.Client({
   channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
   channelSecret: process.env.CHANNEL_SECRET,
@@ -26,45 +28,83 @@ function downloadContent(messageId) {
   );
 }
 
-function contentSize(messageId) {
+async function contentSize(messageId) {
   return client.getMessageContent(messageId).then(
     (stream) =>
       new Promise((resolve, reject) => {
-        
-        stream.on('end', async () => {
-          resolve(imagesize(stream, function (err, result) {
-            if (!err) {
-              console.log(result); // {type, width, height}
-              return result
-            }
-          }));
+        imagesize(stream, function (err, result) {
+          if (!err) {
+            // console.log(result); // {type, width, height}
+            resolve(result);
+          }
         });
-        stream.on('error', reject);
       })
   );
 }
 
-async function handleImage(message, replyToken) {
+async function handleImage(message) {
   if (message.contentProvider.type === 'line') {
     const githubContent = await downloadContent(message.id);
-    // const imageSize = await contentSize(message.id)
-    console.log(githubContent.download_url);
-    // console.log('size: '+ imageSize);
-    return client.replyMessage(replyToken, {
-      type: 'image',
-      originalContentUrl: githubContent.download_url,
-      previewImageUrl: githubContent.download_url,
-    });
+    return githubContent.download_url;
   }
 }
 
 // event handler
 async function handleEvent(event) {
-  if (event.type !== 'message' || event.message.type !== 'image') {
+  const msgType = event.message.type;
+  console.log(event);
+
+  if (event.type !== 'message' && (msgType !== 'image' || msgType !== 'text')) {
     // ignore non-text-message event
     return Promise.resolve(null);
   }
-  await handleImage(event.message, event.replyToken);
+  const uid = event.source.userId;
+  const keyword = event.message.text;
+  let msgStat = new MessageDB();
+
+  if (msgType === 'text') {
+    // await msgStat.init()
+
+    let msgData = await msgStat.find(uid);
+    if (msgData.length === 0) {
+      const data = await msgStat.create(uid, keyword);
+      msgData = await msgStat.find(uid);
+    } else {
+      const updateData = await msgStat.update(uid, keyword);
+      msgData = await msgStat.find(uid);
+    }
+    msgStat.close();
+    client.replyMessage(event.replyToken, {
+      type: 'text',
+      text: JSON.stringify(msgData)
+    });
+  } else {
+    let msgData = await msgStat.find(uid);
+    console.log(msgData);
+    const imageUrl = await handleImage(event.message);
+    const imageSize = await contentSize(event.message.id);
+    let size = imageSize.width;
+    if (imageSize.width < imageSize.height) size = imageSize.height;
+    console.log('Size...:' + size);
+    let qr_config = {
+      text: msgData[0].keyword,
+      size: size,
+      typeNumber: 3,
+      colorDark: '#000000',
+      colorLight: '#ffffff',
+      backgroundImage: imageUrl,
+      autoColor: false,
+      dotScale: 0.35,
+    };
+    const buffer = await new AwesomeQR(qr_config).draw();
+    const github = await uploadGithub(event.message.id + '-1', buffer);
+    console.log(github);
+    client.replyMessage(event.replyToken, {
+      type: 'image',
+      originalContentUrl: github.download_url,
+      previewImageUrl: github.download_url,
+    });
+  }
 }
 
 module.exports = { handleEvent };
