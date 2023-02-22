@@ -98,36 +98,36 @@ app.get('/', (req, res) => {
 // listen on port
 const port = process.env.PORT || 8080;
 app.listen(port, () => {
-  if (baseURL) {
+  // if (baseURL) {
     console.log(`listening on ${baseURL}:${port}/webhooks/line`);
-  } else {
-    console.log('It seems that BASE_URL is not set. Connecting to ngrok...');
-    const token = process.env.NGROK_TOKEN;
-    ngrok
-      .connect({
-        proto: 'http',
-        addr: port,
-        authtoken: token,
-        region: 'jp', 
-      })
-      .then((url) => {
-        baseURL = url;
-        console.log(`listening on ${baseURL}/webhooks/line`);
-        axios
-          .put(
-            'https://api.line.me/v2/bot/channel/webhook/endpoint',
-            { endpoint: `${url}/webhooks/line` },
-            {
-              headers: {
-                Authorization: `Bearer ${config.channelAccessToken}`,
-                'Content-Type': 'application/json',
-              },
-            }
-          )
-          .then((line) => {
-            console.log('Update LINE webhook...: '+line.status);
-          });
-      })
-      .catch(console.error);
-  }
+  // } else {
+  //   console.log('It seems that BASE_URL is not set. Connecting to ngrok...');
+  //   const token = process.env.NGROK_TOKEN;
+  //   ngrok
+  //     .connect({
+  //       proto: 'http',
+  //       addr: port,
+  //       authtoken: token,
+  //       region: 'jp', 
+  //     })
+  //     .then((url) => {
+  //       baseURL = url;
+  //       console.log(`listening on ${baseURL}/webhooks/line`);
+  //       axios
+  //         .put(
+  //           'https://api.line.me/v2/bot/channel/webhook/endpoint',
+  //           { endpoint: `${url}/webhooks/line` },
+  //           {
+  //             headers: {
+  //               Authorization: `Bearer ${config.channelAccessToken}`,
+  //               'Content-Type': 'application/json',
+  //             },
+  //           }
+  //         )
+  //         .then((line) => {
+  //           console.log('Update LINE webhook...: '+line.status);
+  //         });
+  //     })
+  //     .catch(console.error);
+  // }
 });
