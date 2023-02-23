@@ -1,5 +1,4 @@
 const axios = require('axios');
-const {QRcodeGenerate} = require('./qr')
 
 async function uploadGithub(name, chunk) {
   const config = {
@@ -10,12 +9,12 @@ async function uploadGithub(name, chunk) {
   };
 
   const data = {
-    message: '✨ Commit',
+    message: `✨ Upload ${name}`,
     committer: { name: 'NiJia Lin', email: 'louis70109@gmail.com' },
     content: Buffer.from(chunk).toString('base64').toString('ascii'),
     branch: 'master',
   };
-  const url = `https://api.github.com/repos/louis70109/ideas-tree/contents/images/${name}.png`;
+  const url = `https://api.github.com/repos/louis70109/ideas-tree/contents/images/${name}`;
   const result = await axios.put(url, data, config);
   const imageUrl = result.data.content;
   return imageUrl;
