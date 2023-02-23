@@ -3,6 +3,7 @@ const imagesize = require('imagesize');
 const line = require('@line/bot-sdk');
 const MessageDB = require('./sqlite');
 const { AwesomeQR } = require('awesome-qr');
+const { QRcodeGenerate } = require('./qr');
 
 const client = new line.Client({
   channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
@@ -61,7 +62,7 @@ async function handleEvent(event) {
   const uid = event.source.userId;
   const keyword = event.message.text;
   let msgStat = new MessageDB();
-
+  let responseText = '請先輸入文字';
   if (msgType === 'text') {
     // await msgStat.init()
 
@@ -74,35 +75,34 @@ async function handleEvent(event) {
       msgData = await msgStat.find(uid);
     }
     msgStat.close();
-    client.replyMessage(event.replyToken, {
-      type: 'text',
-      text: JSON.stringify(msgData)
-    });
+    responseText = JSON.stringify(msgData);
   } else {
     let msgData = await msgStat.find(uid);
     console.log(msgData);
-    const imageUrl = await handleImage(event.message);
-    const imageSize = await contentSize(event.message.id);
-    let size = imageSize.width;
-    if (imageSize.width < imageSize.height) size = imageSize.height;
-    console.log('Size...:' + size);
-    let qr_config = {
-      text: msgData[0].keyword,
-      size: size,
-      typeNumber: 3,
-      colorDark: '#000000',
-      colorLight: '#ffffff',
-      backgroundImage: imageUrl,
-      autoColor: false,
-      dotScale: 0.35,
-    };
-    const buffer = await new AwesomeQR(qr_config).draw();
-    const github = await uploadGithub(event.message.id + '-1', buffer);
-    console.log(github);
+    msgStat.close();
+    if (msgData[0].keyword !== '') {
+      const imageUrl = await handleImage(event.message);
+      const imageSize = await contentSize(event.message.id);
+      let size = imageSize.width;
+      if (imageSize.width < imageSize.height) size = imageSize.height;
+      console.log('Size...:' + size);
+
+      const buffer = await QRcodeGenerate(msgData[0].keyword, imageUrl, size);
+      const github = await uploadGithub(
+        event.message.id + '-1.' + imageSize.format,
+        buffer
+      );
+      console.log(github);
+      responseText = github.html_url;
+      // client.replyMessage(event.replyToken, {
+      //   type: 'image',
+      //   originalContentUrl: github.download_url,
+      //   previewImageUrl: github.download_url,
+      // });
+    }
     client.replyMessage(event.replyToken, {
-      type: 'image',
-      originalContentUrl: github.download_url,
-      previewImageUrl: github.download_url,
+      type: 'text',
+      text: responseText,
     });
   }
 }
