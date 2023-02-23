@@ -3,11 +3,9 @@ class MessageDB {
   constructor() {
     const file = './memory.db';
 
-    //載入 sqlite3
     const sqlite3 = require('sqlite3').verbose();
     this.db = new sqlite3.Database(file);
     this.query = promisify(this.db.all).bind(this.db);
-    //新增一個sqlite3的資料庫test.db
   }
 
   init() {
@@ -36,7 +34,7 @@ class MessageDB {
     const sqlUpdate = `UPDATE User SET keyword = '${keyword}' where uid = '${uid}'`;
     const updateResult = await this.query(sqlUpdate);
     console.log('update' + updateResult);
-    return updateResult
+    return updateResult;
   }
   get close() {
     return this.close();
