@@ -100,11 +100,12 @@ async function handleEvent(event) {
       //   previewImageUrl: github.download_url,
       // });
     }
-    client.replyMessage(event.replyToken, {
-      type: 'text',
-      text: responseText,
-    });
+    
   }
+  client.replyMessage(event.replyToken, {
+    type: 'text',
+    text: responseText,
+  });
 }
 
 module.exports = { handleEvent };
