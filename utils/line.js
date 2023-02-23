@@ -74,12 +74,10 @@ async function handleEvent(event) {
       const updateData = await msgStat.update(uid, keyword);
       msgData = await msgStat.find(uid);
     }
-    msgStat.close();
     responseText = JSON.stringify(msgData);
   } else {
     let msgData = await msgStat.find(uid);
     console.log(msgData);
-    msgStat.close();
     if (msgData[0].keyword !== '') {
       const imageUrl = await handleImage(event.message);
       const imageSize = await contentSize(event.message.id);
@@ -100,8 +98,8 @@ async function handleEvent(event) {
       //   previewImageUrl: github.download_url,
       // });
     }
-    
   }
+  msgStat.close();
   client.replyMessage(event.replyToken, {
     type: 'text',
     text: responseText,
