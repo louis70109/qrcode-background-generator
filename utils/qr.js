@@ -1,16 +1,15 @@
 const { AwesomeQR } = require('awesome-qr');
 
-async function QRcodeGenerate(text, background) {
+async function QRcodeGenerate(text, background, size=400) {
   let qr_config = {
     text: text,
-    width: 800,
-    height: 800,
+    size,
     typeNumber: 3,
     colorDark: '#000000',
     colorLight: '#ffffff',
     backgroundImage: background,
     autoColor: false,
-    dotScale: 0.35,
+    dotScale: 0.3,
   };
   return await new AwesomeQR(qr_config).draw();
 }
