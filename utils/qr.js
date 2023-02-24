@@ -8,8 +8,8 @@ async function QRcodeGenerate(text, background, size=400) {
     colorDark: '#000000',
     colorLight: '#ffffff',
     backgroundImage: background,
-    autoColor: false,
-    dotScale: 0.3,
+    autoColor: true,
+    dotScale: 0.2,
   };
   return await new AwesomeQR(qr_config).draw();
 }
