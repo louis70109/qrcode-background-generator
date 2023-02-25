@@ -2,8 +2,7 @@ const { uploadGithub } = require('./github');
 const imagesize = require('imagesize');
 const line = require('@line/bot-sdk');
 const MessageDB = require('./sqlite');
-const { AwesomeQR } = require('awesome-qr');
-const { QRcodeGenerate } = require('./qr');
+const { QRcodeGenerate, selectImageSize } = require('./qr');
 
 const client = new line.Client({
   channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
@@ -74,15 +73,14 @@ async function handleEvent(event) {
       const updateData = await msgStat.update(uid, keyword);
       msgData = await msgStat.find(uid);
     }
-    responseText = JSON.stringify(msgData);
+    responseText = '您輸入的是：' + JSON.stringify(msgData[0].keyword);
   } else {
     let msgData = await msgStat.find(uid);
     console.log(msgData);
-    if (msgData[0].keyword !== '') {
+    if (msgData[0].keyword !== '' || msgData[0].keyword !== undefined) {
       const imageUrl = await handleImage(event.message);
       const imageSize = await contentSize(event.message.id);
-      let size = imageSize.width;
-      if (imageSize.width < imageSize.height) size = imageSize.height;
+      const size = selectImageSize(imageSize)
       console.log('Size...:' + size);
 
       const buffer = await QRcodeGenerate(msgData[0].keyword, imageUrl, size);
@@ -92,11 +90,6 @@ async function handleEvent(event) {
       );
       console.log(github);
       responseText = github.html_url;
-      // client.replyMessage(event.replyToken, {
-      //   type: 'image',
-      //   originalContentUrl: github.download_url,
-      //   previewImageUrl: github.download_url,
-      // });
     }
   }
   msgStat.close();
