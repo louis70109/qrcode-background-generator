@@ -9,6 +9,7 @@ const ngrok = require('ngrok');
 const line = require('@line/bot-sdk');
 const { handleEvent } = require('./utils/line');
 const axios = require('axios');
+const { QRcodeGenerate, imageSize, selectImageSize } = require('./utils/qr');
 
 const config = {
   channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
@@ -39,13 +40,15 @@ app.post('/upload', (req, res) => {
   form.parse(req, async function (err, fields, files) {
     // console.log(files.upload.filepath);
     const background = fs.readFileSync(files.upload.filepath);
+
     const imageType = ['image/jpeg', 'image/png'];
     let qr_config = {};
+    let size = await imageSize(fs.createReadStream(files.upload.filepath));
+    size = selectImageSize(size);
     if (imageType.includes(files.upload.mimetype)) {
       qr_config = {
         text: fields.url,
-        width: 800,
-        height: 800,
+        size,
         typeNumber: 3,
         colorDark: '#000000',
         colorLight: '#ffffff',
@@ -56,8 +59,7 @@ app.post('/upload', (req, res) => {
     } else if (files.upload.mimetype === 'image/gif') {
       qr_config = {
         text: fields.url,
-        width: 800,
-        height: 800,
+        size,
         typeNumber: 3,
         colorDark: '#000000',
         colorLight: '#ffffff',
@@ -71,8 +73,7 @@ app.post('/upload', (req, res) => {
     // Local testing.
     // fs.writeFileSync("qrcode.png", buffer);
     const b64 = Buffer.from(buffer).toString('base64');
-    // CHANGE THIS IF THE IMAGE YOU ARE WORKING WITH IS .jpg OR WHATEVER
-    const mimeType = 'image/png'; // e.g., image/png
+    const mimeType = `image/${size.format}`;
 
     // Use base64 to show img.
     res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -82,7 +83,7 @@ app.post('/upload', (req, res) => {
 });
 app.get('/', (req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/html' });
-  res.write('<h3>Default is 800*800</h3><br>');
+  res.write('<h3>預設以長邊為主</h3><br>');
   res.write(
     '<form action="upload" method="post" enctype="multipart/form-data">'
   );
@@ -99,7 +100,7 @@ app.get('/', (req, res) => {
 const port = process.env.PORT || 8080;
 app.listen(port, () => {
   // if (baseURL) {
-    console.log(`listening on ${baseURL}:${port}/webhooks/line`);
+  console.log(`listening on ${baseURL}:${port}/webhooks/line`);
   // } else {
   //   console.log('It seems that BASE_URL is not set. Connecting to ngrok...');
   //   const token = process.env.NGROK_TOKEN;
@@ -108,7 +109,7 @@ app.listen(port, () => {
   //       proto: 'http',
   //       addr: port,
   //       authtoken: token,
-  //       region: 'jp', 
+  //       region: 'jp',
   //     })
   //     .then((url) => {
   //       baseURL = url;
