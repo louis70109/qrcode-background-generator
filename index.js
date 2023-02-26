@@ -42,33 +42,21 @@ app.post('/upload', (req, res) => {
     const background = fs.readFileSync(files.upload.filepath);
 
     const imageType = ['image/jpeg', 'image/png'];
-    let qr_config = {};
     let size = await imageSize(fs.createReadStream(files.upload.filepath));
     size = selectImageSize(size);
+
+    let buffer = '';
     if (imageType.includes(files.upload.mimetype)) {
-      qr_config = {
-        text: fields.url,
-        size,
-        typeNumber: 3,
-        colorDark: '#000000',
-        colorLight: '#ffffff',
-        backgroundImage: background,
-        autoColor: false,
-        dotScale: 0.35,
-      };
-    } else if (files.upload.mimetype === 'image/gif') {
-      qr_config = {
-        text: fields.url,
-        size,
-        typeNumber: 3,
-        colorDark: '#000000',
-        colorLight: '#ffffff',
-        gifBackground: background,
-        autoColor: false,
-        dotScale: 0.35,
-      };
+      buffer = await QRcodeGenerate(fields.url, background, size);
     }
-    const buffer = await new AwesomeQR(qr_config).draw();
+    if (files.upload.mimetype === 'image/gif') {
+      buffer = await QRcodeGenerate(
+        fields.url,
+        background,
+        size,
+        files.upload.mimetype
+      );
+    }
 
     // Local testing.
     // fs.writeFileSync("qrcode.png", buffer);
@@ -77,23 +65,24 @@ app.post('/upload', (req, res) => {
 
     // Use base64 to show img.
     res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.write(`<h3>Right click to save it.</h3>`);
     res.write(`<img src="data:${mimeType};base64,${b64}" />`);
     res.end();
   });
 });
 app.get('/', (req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/html' });
-  res.write('<h3>預設以長邊為主</h3><br>');
-  res.write(
-    '<form action="upload" method="post" enctype="multipart/form-data">'
-  );
-  res.write('<input type="file" name="upload"><br><br>');
-  res.write(
-    '<input type="text" name="url" placeholder="http://aaa.com" required/><br><br>'
-  );
-  res.write('<input type="submit">');
-  res.write('</form>');
-  return res.end();
+  res.writeHead(200, {
+    'Content-Type': 'text/html',
+  });
+  fs.readFile('./index.html', null, function (error, data) {
+    if (error) {
+      res.writeHead(404);
+      res.write('Whoops! File not found!');
+    } else {
+      res.write(data);
+    }
+    res.end();
+  });
 });
 
 // listen on port
