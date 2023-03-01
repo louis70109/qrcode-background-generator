@@ -40,7 +40,6 @@ app.post('/upload', (req, res) => {
   form.parse(req, async function (err, fields, files) {
     // console.log(files.upload.filepath);
     const background = fs.readFileSync(files.upload.filepath);
-
     const imageType = ['image/jpeg', 'image/png'];
     let size = await imageSize(fs.createReadStream(files.upload.filepath));
     size = selectImageSize(size);
@@ -66,7 +65,8 @@ app.post('/upload', (req, res) => {
     // Use base64 to show img.
     res.writeHead(200, { 'Content-Type': 'text/html' });
     res.write(`<h3>Right click to save it.</h3>`);
-    res.write(`<img src="data:${mimeType};base64,${b64}" />`);
+    res.write(`<a download="${files.upload.originalFilename}" href="data:${mimeType};base64,${b64}" alt="download image" />Download link</a><br>`);
+    res.write(`<img width="250" height="250" src="data:${mimeType};base64,${b64}" alt="download image" />`);
     res.end();
   });
 });
