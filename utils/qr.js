@@ -9,7 +9,7 @@ async function QRcodeGenerate(text, background, size = 400, mimeType) {
     colorDark: '#000000',
     colorLight: '#ffffff',
     backgroundImage: background,
-    autoColor: true,
+    autoColor: false,
     dotScale: 0.2,
   };
 
