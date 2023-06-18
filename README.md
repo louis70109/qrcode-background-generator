@@ -17,6 +17,10 @@
 >
 > 因此，如果您正在尋求一款功能強大，易於使用，免費和開源的 QR code generator，那麼您不妨將其作為您的首選。歡迎您的引用，並開始您的 QR code 之旅！
 
+## 操作流程
+
+![流程圖](https://raw.githubusercontent.com/louis70109/qrcode-background-generator/main/user-flow.png)
+
 ## 如何開發測試
 
 需填入 `.env` 檔案中的各種參數值，會自動連線 ngrok 並更換 LINE Bot webhook endpoint。
