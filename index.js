@@ -19,6 +19,10 @@ let baseURL = process.env.BASE_URL;
 
 const app = express();
 
+app.get('/health', (req, res) => {
+  res.status(200).end();
+});
+
 app.post('/webhooks/line', line.middleware(config), (req, res) => {
   Promise.all(req.body.events.map(handleEvent))
     .then((result) => res.json(result))
@@ -62,7 +66,7 @@ app.post('/upload', (req, res) => {
     const b64 = Buffer.from(buffer).toString('base64');
     const mimeType = `image/${size.format}`;
 
-    // Use base64 to show img.
+    // Use base64 to show image.
     res.writeHead(200, { 'Content-Type': 'text/html' });
     res.write(`<h3>Right click to save it.</h3>`);
     res.write(`<a download="${files.upload.originalFilename}" href="data:${mimeType};base64,${b64}" alt="download image" />Download link</a><br>`);
@@ -85,39 +89,8 @@ app.get('/', (req, res) => {
   });
 });
 
-// listen on port
+// Listen on port
 const port = process.env.PORT || 8080;
 app.listen(port, () => {
-  // if (baseURL) {
   console.log(`listening on ${baseURL}:${port}/webhooks/line`);
-  // } else {
-  //   console.log('It seems that BASE_URL is not set. Connecting to ngrok...');
-  //   const token = process.env.NGROK_TOKEN;
-  //   ngrok
-  //     .connect({
-  //       proto: 'http',
-  //       addr: port,
-  //       authtoken: token,
-  //       region: 'jp',
-  //     })
-  //     .then((url) => {
-  //       baseURL = url;
-  //       console.log(`listening on ${baseURL}/webhooks/line`);
-  //       axios
-  //         .put(
-  //           'https://api.line.me/v2/bot/channel/webhook/endpoint',
-  //           { endpoint: `${url}/webhooks/line` },
-  //           {
-  //             headers: {
-  //               Authorization: `Bearer ${config.channelAccessToken}`,
-  //               'Content-Type': 'application/json',
-  //             },
-  //           }
-  //         )
-  //         .then((line) => {
-  //           console.log('Update LINE webhook...: '+line.status);
-  //         });
-  //     })
-  //     .catch(console.error);
-  // }
 });
