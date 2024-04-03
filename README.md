@@ -31,6 +31,15 @@ mv .env.sample .env
 npm install
 npm run dev
 ```
+## Fly.io deploy
+
+如果你是 Mac:
+
+```
+brew install flyctl
+fly auth login
+fly launch
+```
 
 ## License
 
